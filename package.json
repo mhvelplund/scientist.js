@@ -1,0 +1,58 @@
+{
+  "name": "@mhvelplund/scientist",
+  "version": "0.1.0",
+  "description": "A JavaScript/TypeScript port of GitHub's Scientist library for carefully refactoring critical paths.",
+  "keywords": [
+    "scientist",
+    "experiment",
+    "refactoring",
+    "testing",
+    "github"
+  ],
+  "license": "MIT",
+  "author": "Mads Hvelplund",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
+    "@biomejs/biome": "2.5.15",
+    "@vitest/coverage-v8": "^5.0.3",
+    "publint": "^0.3.25",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

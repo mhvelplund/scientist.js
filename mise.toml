@@ -1,0 +1,62 @@
+# mise manages the CLI toolchain and is the single build entrypoint,
+# both locally and in GitHub Actions (`mise run ci`).
+min_version = "2025.1.0"
+
+[tools]
+node = "24"
+
+[env]
+_.path = ["./node_modules/.bin"]
+
+[tasks.install]
+description = "Install npm dependencies"
+run = "npm ci"
+sources = ["package.json", "package-lock.json"]
+outputs = ["node_modules/.package-lock.json"]
+
+[tasks.lint]
+description = "Lint and check formatting with Biome"
+depends = ["install"]
+run = "biome check ."
+
+[tasks.format]
+description = "Format all files with Biome"
+depends = ["install"]
+run = "biome check --write ."
+
+[tasks.typecheck]
+description = "Type-check sources and tests"
+depends = ["install"]
+run = "tsc --noEmit"
+
+[tasks.test]
+description = "Run the unit tests with coverage"
+depends = ["install"]
+run = "vitest run --coverage"
+
+[tasks.build]
+description = "Build ESM + CJS bundles and type declarations into dist/"
+depends = ["install"]
+run = "tsdown"
+
+[tasks.smoke]
+description = "Load the built package from CommonJS and ESM, and type-check its declarations"
+depends = ["build"]
+run = [
+  "node test/smoke/smoke.cjs",
+  "node test/smoke/smoke.mjs",
+  "tsc -p test/smoke/tsconfig.json",
+]
+
+[tasks.pack]
+description = "Show what would be published to npm"
+depends = ["build"]
+run = "npm pack --dry-run"
+
+[tasks.clean]
+description = "Remove build and coverage output"
+run = "rm -rf dist coverage"
+
+[tasks.ci]
+description = "Everything CI runs: lint, typecheck, test, build, smoke"
+depends = ["lint", "typecheck", "test", "build", "smoke"]
