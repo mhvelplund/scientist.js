@@ -23,7 +23,10 @@ describe("Observation", () => {
     expect(ob.raised).toBe(false);
     // Ruby uses a delta of 0.01; slightly looser here to tolerate CI/VM jitter.
     expect(Math.abs(ob.duration - 0.1)).toBeLessThan(0.02);
-    expect(Math.abs(ob.cpuTime - 0.1)).toBeLessThan(0.05);
+    // The loop is bounded by wall time, so on a contended runner the process can be
+    // descheduled and accrue less CPU time than 0.1s. Only check it was measured sanely.
+    expect(ob.cpuTime).toBeGreaterThan(0);
+    expect(ob.cpuTime).toBeLessThan(ob.duration + 0.05);
   });
 
   it("is immutable", () => {
