@@ -22,6 +22,13 @@ The sources were read from `main` at commit
 identical. The ported test suite in [`test/`](test) mirrors upstream's `test/scientist/*_test.rb` at that revision. When
 syncing with a newer upstream release, compare `lib/` from this tag onwards.
 
+## Setup Earthbuild
+
+```sh
+curl -fsSL https://www.earthbuild.dev/install.sh | sh
+earth bootstrap
+```
+
 ## Install
 
 ```sh
