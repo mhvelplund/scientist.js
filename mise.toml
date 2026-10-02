@@ -1,5 +1,5 @@
-# mise manages the CLI toolchain and is the single build entrypoint,
-# both locally and in GitHub Actions (`mise run ci`).
+# mise manages the CLI toolchain and is the local build entrypoint (`mise run ci`).
+# GitHub Actions runs the same steps in containers via the Earthfile (`earth +ci`).
 min_version = "2025.1.0"
 
 [tools]

@@ -8,7 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-[mise](https://mise.jdx.dev) manages the toolchain (Node 24, pinned in `mise.toml`) and is the single build entrypoint, both locally and in CI. `mise.toml` puts `./node_modules/.bin` on PATH.
+[mise](https://mise.jdx.dev) manages the local toolchain (Node 24, pinned in `mise.toml`) and is the local build entrypoint. `mise.toml` puts `./node_modules/.bin` on PATH.
+
+CI runs the same steps in containers through the [EarthBuild](https://docs.earthbuild.dev/) `Earthfile` (`earth --ci +ci` in `.github/workflows/ci.yml`). Keep its targets in step with the mise tasks. `earth +pack` writes the npm tarball; `earth --push --secret NPM_TOKEN +publish` runs CI and publishes it.
 
 ```sh
 mise run ci         # everything CI runs: lint, typecheck, test, build, smoke

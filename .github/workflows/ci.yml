@@ -12,7 +12,11 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
     steps:
+      - uses: earthbuild/actions-setup@f4d20223e70dbb43b5fc08c4d857ab9cf0dbf3ae # v2.2.0
+        with:
+          version: v0.8.19
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v5
-      - run: mise run ci
+      - run: earth --ci +ci
