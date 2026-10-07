@@ -3,6 +3,7 @@
 min_version = "2025.1.0"
 
 [tools]
+earthly = "latest"
 node = "24"
 
 [env]
