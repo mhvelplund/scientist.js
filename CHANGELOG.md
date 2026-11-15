@@ -1,3 +1,9 @@
+## v0.2.1 (2026-11-15)
+
+### Fix
+
+- **release**: add repository metadata so npm accepts the provenance statement
+
 ## v0.2.0 (2026-11-15)
 
 ### Feat
