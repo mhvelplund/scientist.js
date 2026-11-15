@@ -1,10 +1,15 @@
-# mise manages the CLI toolchain and is the local build entrypoint (`mise run ci`).
-# GitHub Actions runs the same steps in containers via the Earthfile (`earth +ci`).
+# mise manages every CLI tool this repo needs and is the local build entrypoint (`mise run ci`).
+# GitHub Actions installs the same tools with jdx/mise-action and runs the steps in containers via
+# the Earthfile (`earth +ci`).
 min_version = "2025.1.0"
 
 [tools]
-earthly = "latest"
 node = "24"
+gh = "2.104.0"
+"github:earthbuild/earthbuild" = { version = "0.8.19", bin = "earth" }
+uv = "0.13.8" # backend for the pipx tools below
+"pipx:commitizen" = "4.19.3"
+"pipx:pre-commit" = "4.7.0"
 
 [env]
 _.path = ["./node_modules/.bin"]
@@ -53,6 +58,14 @@ run = [
 description = "Show what would be published to npm"
 depends = ["build"]
 run = "npm pack --dry-run"
+
+[tasks.hooks]
+description = "Install the git hooks (pre-commit, commit-msg, pre-push) from .pre-commit-config.yaml"
+run = "pre-commit install"
+
+[tasks.bump]
+description = "Preview the next version and changelog commitizen would release"
+run = "cz bump --dry-run --changelog"
 
 [tasks.clean]
 description = "Remove build and coverage output"

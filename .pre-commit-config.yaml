@@ -1,0 +1,44 @@
+# Git hooks, installed with `mise run hooks`. File checks run before every commit and again before
+# every push (on the files changed in the pushed commits). Commit messages must be Conventional
+# Commits: checked per commit (commit-msg) and for the whole pushed range (pre-push).
+#
+# Biome and commitizen run as local hooks through `mise x` so they use the versions pinned in
+# package.json and mise.toml (the same ones CI uses), even when mise isn't activated in the shell.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit, pre-push]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^CHANGELOG\.md$
+      - id: end-of-file-fixer
+        exclude: ^CHANGELOG\.md$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome check
+        entry: mise x -- biome check --write --no-errors-on-unmatched --files-ignore-unknown=true
+        language: system
+        types_or: [ts, javascript, json]
+
+      - id: commitizen
+        name: conventional commit message
+        entry: mise x -- cz check --allow-abort --commit-msg-file
+        language: system
+        stages: [commit-msg]
+
+      - id: commitizen-branch
+        name: conventional commit messages in pushed range
+        entry: mise x -- bash -c 'cz check --rev-range "${PRE_COMMIT_FROM_REF}..${PRE_COMMIT_TO_REF}"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
