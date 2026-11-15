@@ -1,4 +1,4 @@
-// Executable versions of the examples in README.md and docs/*.md.
+// Executable versions of the examples in README.md, docs/*.md and skills/*/SKILL.md.
 // If an example in the docs changes, update the matching test here.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -866,5 +866,163 @@ describe("javascript-usage.md", () => {
     e.use(() => 1);
     e.try(() => 2);
     expect(() => e.run()).toThrow("experiment.enabled is not a function");
+  });
+});
+
+describe("skills/scientist-experiments", () => {
+  // The AppExperiment from SKILL.md, with the metrics/logger calls captured in arrays.
+  const counters: string[] = [];
+  const warnings: Record<string, unknown>[] = [];
+  const failures: string[] = [];
+
+  class AppExperiment<T = unknown> extends Experiment<T> {
+    override enabled(): boolean {
+      return 100 > Math.random() * 100;
+    }
+
+    override publish(result: Result<T>): void {
+      counters.push(
+        `science.${this.name}.${result.matched() ? "matched" : result.ignored() ? "ignored" : "mismatched"}`,
+      );
+      if (result.mismatched()) {
+        warnings.push({
+          experiment: this.name,
+          context: result.context,
+          control: result.control?.raised
+            ? String(result.control.exception)
+            : result.control?.cleanedValue,
+          candidates: result.mismatchedObservations.map((o) => ({
+            name: o.name,
+            value: o.raised ? String(o.exception) : o.cleanedValue,
+          })),
+        });
+      }
+    }
+
+    override raised(operation: RaisedOperation, error: unknown): void {
+      failures.push(`science failure in ${this.name}: ${operation} ${String(error)}`);
+    }
+  }
+
+  afterEach(() => {
+    counters.length = 0;
+    warnings.length = 0;
+    failures.length = 0;
+    AppExperiment.raiseOnMismatches = undefined;
+  });
+
+  it("does nothing until an experiment class is registered", () => {
+    let candidateRan = false;
+    run<number>("unregistered", (e) => {
+      e.use(() => 1);
+      e.try(() => {
+        candidateRan = true;
+        return 1;
+      });
+    });
+    expect(candidateRan).toBe(false);
+  });
+
+  it("publishes mismatches with context and swallows candidate errors", () => {
+    Experiment.setDefault(AppExperiment);
+    const allowed = run<boolean>("widget-permissions", (e) => {
+      e.context({ userId: 42 });
+      e.use(() => true);
+      e.try(() => {
+        throw new Error("boom");
+      });
+    });
+    expect(allowed).toBe(true);
+    expect(counters).toEqual(["science.widget-permissions.mismatched"]);
+    expect(warnings[0]).toEqual({
+      experiment: "widget-permissions",
+      context: { userId: 42 },
+      control: true,
+      candidates: [{ name: "candidate", value: "Error: boom" }],
+    });
+  });
+
+  it("routes callback errors to the overridden raised instead of throwing", () => {
+    Experiment.setDefault(AppExperiment);
+    const value = run<number>("bad-compare", (e) => {
+      e.use(() => 1);
+      e.try(() => 1);
+      e.compare(() => {
+        throw new Error("bad comparator");
+      });
+    });
+    expect(value).toBe(1);
+    expect(failures).toEqual(["science failure in bad-compare: compare Error: bad comparator"]);
+  });
+
+  it("sync run with async behaviors compares promises; runAsync awaits them", async () => {
+    Experiment.setDefault(AppExperiment);
+    await run<Promise<number>>("oops", (e) => {
+      e.use(async () => 1);
+      e.try(async () => 1);
+    });
+    expect(counters).toEqual(["science.oops.mismatched"]);
+
+    const value = await runAsync<number>("load", (e) => {
+      e.use(async () => 1);
+      e.try(async () => 1);
+    });
+    expect(value).toBe(1);
+    expect(counters[1]).toBe("science.load.matched");
+  });
+
+  it("an async compare in a sync run is routed to raised as a TypeError", () => {
+    Experiment.setDefault(AppExperiment);
+    run<number>("async-compare", (e) => {
+      e.use(() => 1);
+      e.try(() => 1);
+      e.compare(async () => true);
+    });
+    expect(failures[0]).toMatch(/^science failure in async-compare: compare TypeError/);
+  });
+
+  it("compares class instances by identity unless they have equals()", () => {
+    Experiment.setDefault(AppExperiment);
+    class Point {
+      constructor(readonly x: number) {}
+    }
+    run<Point>("points", (e) => {
+      e.use(() => new Point(1));
+      e.try(() => new Point(1));
+    });
+    expect(counters).toEqual(["science.points.mismatched"]);
+  });
+
+  it("throws MismatchError after publishing when raiseOnMismatches is set", () => {
+    Experiment.setDefault(AppExperiment);
+    AppExperiment.raiseOnMismatches = true;
+    expect(() =>
+      run<number>("strict", (e) => {
+        e.use(() => 1);
+        e.try(() => 2);
+      }),
+    ).toThrow(MismatchError);
+    expect(counters).toEqual(["science.strict.mismatched"]);
+  });
+
+  it("frozen experiments reject new behaviors", () => {
+    const e = new AppExperiment<number>("frozen");
+    e.use(() => 1);
+    e.run();
+    expect(() => e.try(() => 2)).toThrow(TypeError);
+  });
+
+  it("control-less experiments pick a candidate with the run option", () => {
+    Experiment.setDefault(AppExperiment);
+    const value = run<string>(
+      "various-ways",
+      (e) => {
+        e.try("first-way", () => "a");
+        e.try("second-way", () => "a");
+      },
+      { run: "first-way" },
+    );
+    expect(value).toBe("a");
+    expect(counters).toEqual(["science.various-ways.matched"]);
   });
 });

@@ -50,7 +50,9 @@ When adding logic that calls user code, write it inside a steps generator and ro
 
 **Ruby-compat naming.** Ruby names are exported as aliases in `src/index.ts`, for example `Default`, `BadBehavior` and `NoValue`. Error operations passed to `raised()` are the strings in `RaisedOperation` (`"run_if"` keeps Ruby's snake_case).
 
-**Tests.** Unit tests in `test/*.test.ts` mirror upstream's `test/scientist/*_test.rb`. `test/docs-examples.test.ts` has executable copies of the examples in `README.md` and `docs/*.md`. When you change a doc example, update its test too.
+**Tests.** Unit tests in `test/*.test.ts` mirror upstream's `test/scientist/*_test.rb`. `test/docs-examples.test.ts` has executable copies of the examples in `README.md`, `docs/*.md` and the agent skill. When you change a doc example, update its test too.
+
+**Agent skill.** `skills/scientist-experiments/` (`SKILL.md` + `reference.md`) is an [agent skill](https://agentskills.io) that users install with `npx skills add mhvelplund/scientist.js`. It is a condensed version of the docs, so update it whenever the public API, defaults or a documented pitfall changes.
 
 ## Commits, PRs and releases
 
