@@ -126,9 +126,8 @@ in random order.
   rejection.
 - In `runAsync`, every hook may be async: `enabled`, `runIf`, `beforeRun`, `compare`, `compareErrors`, `ignore`,
   `afterRun` and `publish`.
-- In a sync `run`, a hook that returns a promise throws a `TypeError`. That error is routed like an error thrown by
-  the hook. The exception is `publish`: an async `publish` is fire-and-forget, and a rejection goes to
-  `raised("publish")`.
+- In a sync `run`, a hook that returns a promise throws a `TypeError`. That error is routed like an error thrown by the
+  hook. The exception is `publish`: an async `publish` is fire-and-forget, and a rejection goes to `raised("publish")`.
 - `clean` and `raised` must always be synchronous.
 
 ## What to wrap
@@ -186,5 +185,5 @@ swallow it. For a deterministic order, override `protected shuffle(names) { retu
 ## More detail
 
 See [reference.md](./reference.md) for the `Result` and `Observation` fields, `raised` operations, error classes,
-`defaultEquals` rules, multiple and control-less candidates, and Ruby-to-JS name mapping. The package's full docs are
-at https://github.com/mhvelplund/scientist.js/tree/main/docs.
+`defaultEquals` rules, multiple and control-less candidates, and Ruby-to-JS name mapping. The package's full docs are at
+https://github.com/mhvelplund/scientist.js/tree/main/docs.
