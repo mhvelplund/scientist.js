@@ -10,6 +10,14 @@
     "github"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mhvelplund/scientist.js.git"
+  },
+  "homepage": "https://github.com/mhvelplund/scientist.js#readme",
+  "bugs": {
+    "url": "https://github.com/mhvelplund/scientist.js/issues"
+  },
   "author": "Mads Hvelplund",
   "type": "module",
   "main": "./dist/index.cjs",
