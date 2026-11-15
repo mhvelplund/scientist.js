@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-[mise](https://mise.jdx.dev) manages the local toolchain (Node 24, pinned in `mise.toml`) and is the local build entrypoint. `mise.toml` puts `./node_modules/.bin` on PATH.
+[mise](https://mise.jdx.dev) pins every CLI tool in `mise.toml` and is the local build entrypoint. The tools are Node 24, `gh`, EarthBuild's `earth`, `actionlint`, `uv`, and commitizen (`cz`) and pre-commit through uv. When the repo needs a new binary, add it to `mise.toml` instead of documenting a manual install. `mise.toml` puts `./node_modules/.bin` on PATH.
 
-CI runs the same steps in containers through the [EarthBuild](https://docs.earthbuild.dev/) `Earthfile` (`earth --ci +ci` in `.github/workflows/ci.yml`). Keep its targets in step with the mise tasks. `earth +pack` writes the npm tarball; `earth --push --secret NPM_TOKEN +publish` runs CI and publishes it.
+CI installs the tools with `jdx/mise-action` and runs the same steps in containers through the [EarthBuild](https://docs.earthbuild.dev/) `Earthfile` (`earth --ci +ci` in `.github/workflows/ci.yml`). Keep its targets in step with the mise tasks. `earth +pack` writes the npm tarball that `release.yml` publishes.
 
 ```sh
 mise run ci         # everything CI runs: lint, typecheck, test, build, smoke
@@ -20,6 +20,8 @@ mise run typecheck  # tsc --noEmit (src + test)
 mise run test       # vitest run --coverage
 mise run build      # tsdown -> dist/ (also runs publint + attw)
 mise run smoke      # load built dist/ from CJS and ESM, type-check the declarations
+mise run hooks      # install git hooks (pre-commit, commit-msg, pre-push); do this once per clone
+mise run bump       # preview the next version/changelog (cz bump --dry-run)
 ```
 
 Run a single test file or test by name with `npx vitest run test/experiment.test.ts` or `npx vitest run -t "pattern"`.
@@ -49,6 +51,13 @@ When adding logic that calls user code, write it inside a steps generator and ro
 **Ruby-compat naming.** Ruby names are exported as aliases in `src/index.ts`, for example `Default`, `BadBehavior` and `NoValue`. Error operations passed to `raised()` are the strings in `RaisedOperation` (`"run_if"` keeps Ruby's snake_case).
 
 **Tests.** Unit tests in `test/*.test.ts` mirror upstream's `test/scientist/*_test.rb`. `test/docs-examples.test.ts` has executable copies of the examples in `README.md` and `docs/*.md`. When you change a doc example, update its test too.
+
+## Commits, PRs and releases
+
+- **Every commit message must be a [Conventional Commit](https://www.conventionalcommits.org)**: `type(optional-scope): summary`, where type is one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `style`, `chore` or `revert`. Mark breaking changes with `!` (`feat!: ...`) or a `BREAKING CHANGE:` footer. PR titles follow the same format. The `commit-msg` and `pre-push` hooks enforce it, so never bypass them with `--no-verify`.
+- Pick the type by user-visible effect, because it decides the release: `feat` bumps minor, `fix`/`perf` bump patch, and breaking changes bump minor while on 0.x (major after 1.0). Other types don't release.
+- `main` only changes through PRs, and the `ci` check must pass. Work on a branch and open a PR.
+- `.github/workflows/release.yml` runs commitizen (`.cz.toml`) on every push to `main`. It bumps `package.json`/`package-lock.json`, updates `CHANGELOG.md`, tags `vX.Y.Z` as the `commitizen-ci` app (the only bypass actor on `main`), publishes to npm with trusted publishing, and creates a GitHub release (a pre-release for 0.x). Never edit the version or `CHANGELOG.md` by hand, and never create `v*` tags yourself.
 
 ## Conventions
 

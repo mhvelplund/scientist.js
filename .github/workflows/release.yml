@@ -1,0 +1,92 @@
+name: release
+
+# On every push to main, commitizen decides from the Conventional Commits since the last tag whether
+# to release. If so it bumps package.json/package-lock.json, updates CHANGELOG.md, commits and tags
+# as the commitizen-ci GitHub App (which may bypass the main branch ruleset), then this workflow
+# publishes the package to npm (trusted publishing) and creates a GitHub release.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    # The bump commit pushed below would otherwise start another release.
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC) and provenance
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.COMMITIZEN_CI_CLIENT_ID }}
+          private-key: ${{ secrets.COMMITIZEN_CI_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+
+      - name: Bump version
+        id: bump
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          bot="${APP_SLUG}[bot]"
+          git config user.name "$bot"
+          git config user.email "$(gh api "users/$bot" --jq .id)+$bot@users.noreply.github.com"
+
+          before="$(cz version --project)"
+          # 3 = no commits since the last tag, 21 = no commits that warrant a release.
+          cz --no-raise 3,21 bump --yes
+          after="$(cz version --project)"
+
+          if [ "$before" = "$after" ]; then
+            echo "No release-worthy commits since v$before."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Release notes: this version's changelog section without its heading.
+          cz changelog --dry-run "v$after" | tail -n +2 > "$RUNNER_TEMP/notes.md"
+          echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "version=$after" >> "$GITHUB_OUTPUT"
+
+      - name: Push bump commit and tag
+        if: steps.bump.outputs.released == 'true'
+        run: git push --atomic origin main "v${{ steps.bump.outputs.version }}"
+
+      - name: Build package
+        if: steps.bump.outputs.released == 'true'
+        run: earth --strict +pack
+
+      - name: Publish to npm
+        if: steps.bump.outputs.released == 'true'
+        run: npm publish ./*.tgz --provenance --access public
+
+      - name: Create GitHub release
+        if: steps.bump.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          prerelease=()
+          # 0.x versions are pre-releases.
+          if [[ "$VERSION" == 0.* ]]; then prerelease=(--prerelease); fi
+          gh release create "v$VERSION" --verify-tag --title "v$VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" "${prerelease[@]}"

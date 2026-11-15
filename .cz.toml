@@ -1,0 +1,9 @@
+# Commitizen: version bumps, tags and CHANGELOG.md from Conventional Commits.
+# Run by .github/workflows/release.yml on every push to main; preview locally with `mise run bump`.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "npm"        # reads and bumps package.json and package-lock.json
+tag_format = "v$version"
+major_version_zero = true       # while on 0.x, breaking changes bump the minor version
+update_changelog_on_bump = true
+bump_message = "bump: version $current_version → $new_version"

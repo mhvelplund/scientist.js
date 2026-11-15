@@ -15,8 +15,7 @@ jobs:
     env:
       FORCE_COLOR: 1
     steps:
-      - uses: earthbuild/actions-setup@f4d20223e70dbb43b5fc08c4d857ab9cf0dbf3ae # v2.2.0
-        with:
-          version: v0.8.19
       - uses: actions/checkout@v7
+      # Installs the tools pinned in mise.toml (including EarthBuild's `earth`).
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
       - run: earth --ci +ci

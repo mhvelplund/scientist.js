@@ -22,13 +22,6 @@ The sources were read from `main` at commit
 identical. The ported test suite in [`test/`](test) mirrors upstream's `test/scientist/*_test.rb` at that revision. When
 syncing with a newer upstream release, compare `lib/` from this tag onwards.
 
-## Setup Earthbuild
-
-```sh
-curl -fsSL https://www.earthbuild.dev/install.sh | sh
-earth bootstrap
-```
-
 ## Install
 
 ```sh
@@ -140,13 +133,27 @@ JavaScript usage, and the differences from the Ruby library.
 
 ### Prerequisites
 
-The toolchain (Node.js and the build tasks) is managed by [mise](https://mise.jdx.dev). Install it by following the
-instructions at <https://mise.jdx.dev>, then from a checkout of this repository:
+Every tool this repository needs is pinned in [`mise.toml`](mise.toml) and installed by [mise](https://mise.jdx.dev):
+Node.js, the GitHub CLI (`gh`), [EarthBuild](https://docs.earthbuild.dev/) (`earth`), [actionlint](https://github.com/rhysd/actionlint), and, via `uv`,
+[commitizen](https://commitizen-tools.github.io/commitizen/) (`cz`) and [pre-commit](https://pre-commit.com). Install
+mise by following the instructions at <https://mise.jdx.dev>, then from a checkout of this repository:
 
 ```sh
-mise install   # installs the Node.js version pinned in mise.toml
-mise run ci    # installs dependencies, lints, type-checks, tests, builds and smoke-tests
+mise install     # installs the pinned tools
+mise run hooks   # installs the git hooks (pre-commit, commit-msg, pre-push)
+mise run ci      # installs dependencies, lints, type-checks, tests, builds and smoke-tests
 ```
+
+The containerized build (`earth +ci`, see [`Earthfile`](Earthfile)) also needs Docker or Podman; run `earth bootstrap`
+once after installing.
+
+### Commit messages and git hooks
+
+Commit messages must follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: ...`, `fix: ...`,
+`docs: ...`, `feat!: ...` for breaking changes, and so on), because releases are versioned from them. The hooks in
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml) check each commit message, and before every commit and every push
+they run Biome and some basic file checks. Before a push they also check that every pushed commit message is
+conventional. Use `cz commit` for an interactive prompt that writes a valid message.
 
 ### Tasks
 
@@ -162,16 +169,21 @@ Every task is defined in [`mise.toml`](mise.toml) and run with `mise run <task>`
 | `build`     | Build ESM + CJS bundles and type declarations into `dist/`                    | `tsdown`                                               |
 | `smoke`     | Load the built package from CommonJS and ESM, and type-check its declarations | `node test/smoke/smoke.{cjs,mjs}`, `tsc -p test/smoke` |
 | `pack`      | Show what would be published to npm                                           | `npm pack --dry-run`                                   |
+| `hooks`     | Install the git hooks                                                         | `pre-commit install`                                   |
+| `bump`      | Preview the next version and changelog commitizen would release               | `cz bump --dry-run --changelog`                        |
 | `clean`     | Remove build and coverage output                                              | `rm -rf dist coverage`                                 |
 | `ci`        | Everything CI runs: lint, typecheck, test, build, smoke                       | depends on the tasks above                             |
 
-All tasks except `clean` depend on `install`, so a fresh checkout only needs `mise run <task>`.
+The build tasks depend on `install`, so a fresh checkout only needs `mise run <task>`.
 
 ### Continuous integration
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the exact same `mise run ci` on every push to `main` and
-every pull request, using [`jdx/mise-action`](https://github.com/jdx/mise-action) to install mise and the pinned tools.
-If `mise run ci` passes locally, CI should pass too.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and every pull request. It installs
+the pinned tools with [`jdx/mise-action`](https://github.com/jdx/mise-action), then runs `earth --ci +ci`, which runs
+the same steps as `mise run ci` in containers. If `mise run ci` passes locally, CI should pass too.
+
+`main` is protected: it can only change through a pull request, and the `ci` check must pass before the pull request
+can merge.
 
 ### Using a local build from another project
 
@@ -200,16 +212,23 @@ npm link @mhvelplund/scientist
 The tarball is closer to what users get from the registry (only `dist/` is included); `npm link` is more convenient
 while iterating.
 
-### Publishing
+### Releasing
 
-```sh
-mise run ci
-npm publish
-```
+Releases are automatic. On every push to `main`,
+[`.github/workflows/release.yml`](.github/workflows/release.yml) runs commitizen (configured in
+[`.cz.toml`](.cz.toml)) on the Conventional Commits since the last tag:
 
-`prepublishOnly` rebuilds `dist/` first. The package is scoped (`@mhvelplund/scientist`), and `publishConfig.access` is
-set to `"public"` in `package.json`, so no `--access public` flag is needed. Use `mise run pack` beforehand to check
-what will be uploaded.
+1. If there are no `feat`, `fix` or breaking-change commits, nothing happens.
+2. Otherwise commitizen bumps `version` in `package.json` and `package-lock.json`, updates
+   `CHANGELOG.md`, and commits and tags `vX.Y.Z` as the `commitizen-ci` GitHub App. That app is the only
+   actor allowed to push to `main` directly.
+3. The workflow builds the tarball with `earth +pack` and publishes it to npm with
+   [trusted publishing](https://docs.npmjs.com/trusted-publishers) and provenance. No npm token is stored.
+4. It creates a GitHub release for the tag with that version's changelog. While the version is `0.x`, releases are
+   marked as pre-releases.
+
+While on `0.x`, breaking changes bump the minor version. Never edit the version or `CHANGELOG.md` by hand. Run
+`mise run bump` to preview what the next release would be.
 
 ## License
 
