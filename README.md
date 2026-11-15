@@ -24,9 +24,19 @@ syncing with a newer upstream release, compare `lib/` from this tag onwards.
 
 ## Install
 
+The package is published to npm as [`@mhvelplund/scientist`](https://www.npmjs.com/package/@mhvelplund/scientist).
+Install it with your package manager:
+
 ```sh
 npm install @mhvelplund/scientist
+# or
+pnpm add @mhvelplund/scientist
+# or
+yarn add @mhvelplund/scientist
 ```
+
+You don't need to clone or build this repository to use the library; that is only needed to
+[contribute](#building-from-source).
 
 TypeScript type declarations ship with the package (`dist/index.d.mts` for `import`, `dist/index.d.cts` for `require`),
 so there is no separate `@types/...` package to install. They are resolved through the `exports` map and work with
@@ -129,6 +139,23 @@ The full guide lives in [docs/index.md](docs/index.md). It covers custom experim
 cleaning, ignoring mismatches, publishing, testing, error handling, multiple candidates, async experiments, plain
 JavaScript usage, and the differences from the Ruby library.
 
+## Agent skill
+
+This repository ships an [agent skill](https://agentskills.io) that teaches AI coding agents (Claude Code, Cursor,
+Codex, GitHub Copilot and others) how to use this library: registering an experiment class, choosing between `run` and
+`runAsync`, writing a publisher, what is safe to experiment on, and the common mistakes. It lives in
+[`skills/scientist-experiments/`](skills/scientist-experiments/SKILL.md).
+
+Install it with the [`skills`](https://github.com/vercel-labs/skills) CLI:
+
+```sh
+npx skills add mhvelplund/scientist.js
+```
+
+The CLI asks which agents to install the skill for and whether to install it in the current project or globally. Pass
+`--skill scientist-experiments` to pick the skill without the prompt, `-g` to install it globally, or `-a claude-code`
+(for example) to target a specific agent.
+
 ## Building from source
 
 ### Prerequisites
@@ -185,9 +212,10 @@ the same steps as `mise run ci` in containers. If `mise run ci` passes locally, 
 `main` is protected: it can only change through a pull request, and the `ci` check must pass before the pull request
 can merge.
 
-### Using a local build from another project
+### Trying unreleased changes in another project
 
-To try an unpublished version in another local project, either pack it into a tarball:
+To use a released version, [install it from npm](#install). Only if you need to try unreleased changes from a checkout
+in another local project, either pack it into a tarball:
 
 ```sh
 # in this repository
