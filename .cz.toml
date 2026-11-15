@@ -6,5 +6,4 @@ version_provider = "npm"        # reads and bumps package.json and package-lock.
 tag_format = "v$version"
 major_version_zero = true       # while on 0.x, breaking changes bump the minor version
 update_changelog_on_bump = true
-changelog_incremental = true
 bump_message = "bump: version $current_version → $new_version"

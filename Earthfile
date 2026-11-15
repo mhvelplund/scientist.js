@@ -5,8 +5,9 @@ VERSION 0.8
 #   earth +ci                      lint, typecheck, test, build, smoke
 #   earth +build                   build dist/ and copy it back to the host
 #   earth +pack                    write the publishable tarball to the host
-#   earth --push --secret NPM_TOKEN +publish
-#                                  run CI, then publish the tested tarball to npm
+#
+# Publishing happens in .github/workflows/release.yml, which runs `npm publish` on the +pack
+# tarball with npm trusted publishing (no npm token is stored anywhere).
 
 ARG --global NODE_VERSION=24
 
@@ -63,12 +64,3 @@ ci:
     BUILD +test
     BUILD +build
     BUILD +smoke
-
-publish:
-    FROM +pack
-    WAIT
-        BUILD +ci
-    END
-    # npm expands ${NPM_TOKEN} itself, so the token never lands in a layer.
-    RUN echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
-    RUN --push --secret NPM_TOKEN npm publish ./*.tgz

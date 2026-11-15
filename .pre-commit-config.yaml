@@ -29,6 +29,12 @@ repos:
         language: system
         types_or: [ts, javascript, json]
 
+      - id: actionlint
+        name: actionlint
+        entry: mise x -- actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+
       - id: commitizen
         name: conventional commit message
         entry: mise x -- cz check --allow-abort --commit-msg-file

@@ -7,6 +7,7 @@ min_version = "2025.1.0"
 node = "24"
 gh = "2.104.0"
 "github:earthbuild/earthbuild" = { version = "0.8.19", bin = "earth" }
+actionlint = "1.7.12"
 uv = "0.13.8" # backend for the pipx tools below
 "pipx:commitizen" = "4.19.3"
 "pipx:pre-commit" = "4.7.0"
